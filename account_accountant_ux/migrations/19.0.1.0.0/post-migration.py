@@ -43,3 +43,18 @@ def migrate(cr, version):
         _logger.info(f"  ✓ use_company_currency_on_followup eliminado en post-migrate (id {view_id})")
     else:
         _logger.info("  - res_config_settings_view_form ya está limpia")
+
+    # Reactivar la vista después de limpiar el campo obsoleto
+    # (fue desactivada en el pre-migrate de account_payment_pro)
+    cr.execute("""
+        UPDATE ir_ui_view SET active = True
+        WHERE id IN (
+            SELECT res_id FROM ir_model_data
+            WHERE module = 'account_accountant_ux'
+              AND name = 'res_config_settings_view_form'
+              AND model = 'ir.ui.view'
+        )
+        AND active = False
+    """)
+    if cr.rowcount > 0:
+        _logger.info("  ✓ account_accountant_ux.res_config_settings_view_form reactivada")
